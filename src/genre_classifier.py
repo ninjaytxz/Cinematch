@@ -1,21 +1,54 @@
 # genre_classifier.py
+import os
 import torch
 import pickle
 from transformers import DistilBertTokenizer, DistilBertModel
 from torch import nn
 from sklearn.preprocessing import MultiLabelBinarizer
 import numpy as np
+from huggingface_hub import hf_hub_download
+
+# Hugging Face repo ID
+HF_REPO_ID = "saifnimri86/cinematch-genre-classifier"
+
+# Local cache directory — Streamlit Cloud persists this between reruns
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "classifier_model")
+
+
+def _ensure_file(local_path: str, filename: str) -> str:
+    """
+    Returns the path to the file.
+    - If it already exists locally (your dev machine), use it directly.
+    - If not (Streamlit Cloud), download it from Hugging Face Hub into CACHE_DIR.
+    """
+    if os.path.exists(local_path):
+        return local_path
+
+    print(f"[GenreClassifier] '{filename}' not found locally. Downloading from Hugging Face Hub...")
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+    downloaded_path = hf_hub_download(
+        repo_id=HF_REPO_ID,
+        filename=filename,
+        local_dir=CACHE_DIR,       # save it into classifier_model/
+        repo_type="model"
+    )
+    print(f"[GenreClassifier] Downloaded '{filename}' to {downloaded_path}")
+    return downloaded_path
 
 
 class GenrePredictor:
     def __init__(self, model_path, mlb_path):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-        # Load components with error handling
         try:
             self.tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
-            self.mlb = self._load_mlb(mlb_path)
-            self.model = self._load_model(model_path, len(self.mlb.classes_))
+
+            # Resolve actual file paths — download from HF if missing
+            resolved_mlb_path = _ensure_file(mlb_path, "label_binarizer.pkl")
+            resolved_model_path = _ensure_file(model_path, "movie_genre_classifier.pth")
+
+            self.mlb = self._load_mlb(resolved_mlb_path)
+            self.model = self._load_model(resolved_model_path, len(self.mlb.classes_))
             self.MAX_LENGTH = 128
         except Exception as e:
             raise RuntimeError(f"Failed to initialize genre classifier: {str(e)}")
@@ -52,7 +85,6 @@ class GenrePredictor:
                 return_attention_mask=True,
                 return_tensors='pt',
             )
-
             input_ids = encoding['input_ids'].to(self.device)
             attention_mask = encoding['attention_mask'].to(self.device)
 
@@ -62,12 +94,10 @@ class GenrePredictor:
 
             predictions = (probs > threshold).astype(int).reshape(1, -1)
             genres = self.mlb.inverse_transform(predictions)[0]
-
             genre_confidences = {
                 self.mlb.classes_[i]: float(probs[i])
                 for i in range(len(probs)) if predictions[0][i]
             }
-
             return list(genres), genre_confidences
         except Exception as e:
             raise RuntimeError(f"Prediction failed: {str(e)}")
