@@ -76,7 +76,6 @@ def load_genre_predictor():
         st.code(traceback.format_exc())  # prints the FULL traceback on screen
         st.stop()
 
-genre_predictor = load_genre_predictor()
 
 @cache_data_with_pickle(ttl=3600, show_spinner="Calculating weighted ratings...")
 def calculate_weighted_rating(df, min_votes_alltime=10000, min_votes_yearly=2000):
@@ -763,6 +762,9 @@ elif st.session_state.active_feature == "genre_from_desc":
     st.markdown("## 🔮 Predict Genres from Movie Description")
     st.markdown(
         "*Here's a fun little experimentation tool to predict the genre(s) of any movie based on its description!*")
+    
+        with st.spinner("Loading genre classifier (first time may take a moment)..."):
+        genre_predictor = load_genre_predictor()
 
     with st.form("genre_prediction_form"):
         overview_input = st.text_area(
