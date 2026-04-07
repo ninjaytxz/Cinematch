@@ -32,7 +32,7 @@ class GenrePredictor:
         """Load the PyTorch model with error handling"""
         try:
             model = GenreClassifier(n_classes)
-            model.load_state_dict(torch.load(model_path, map_location=self.device))
+            model.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=False))
             model = model.to(self.device)
             model.eval()
             return model
