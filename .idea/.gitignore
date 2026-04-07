@@ -1,3 +1,6 @@
 # Default ignored files
 /shelf/
 /workspace.xml
+
+src/classifier_model/*.pth
+src/classifier_model/*.pkl
