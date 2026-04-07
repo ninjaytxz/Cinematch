@@ -763,7 +763,7 @@ elif st.session_state.active_feature == "genre_from_desc":
     st.markdown(
         "*Here's a fun little experimentation tool to predict the genre(s) of any movie based on its description!*")
     
-        with st.spinner("Loading genre classifier (first time may take a moment)..."):
+    with st.spinner("Loading genre classifier (first time may take a moment)..."):
         genre_predictor = load_genre_predictor()
 
     with st.form("genre_prediction_form"):
