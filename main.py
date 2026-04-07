@@ -64,6 +64,7 @@ st.markdown(f"<style>{load_css('styles.css')}</style>", unsafe_allow_html=True)
 
 @st.cache_resource
 def load_genre_predictor():
+    import traceback
     try:
         predictor = GenrePredictor(
             model_path='src/classifier_model/movie_genre_classifier.pth',
@@ -72,6 +73,7 @@ def load_genre_predictor():
         return predictor
     except Exception as e:
         st.error(f"Failed to load genre classifier: {str(e)}")
+        st.code(traceback.format_exc())  # prints the FULL traceback on screen
         st.stop()
 
 genre_predictor = load_genre_predictor()
